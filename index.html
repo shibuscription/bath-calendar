@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>お風呂カレンダー</title>
+    <title>Are 湯 Ready?</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             font-family: sans-serif;
@@ -14,14 +15,15 @@
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 4px;
-            max-width: 300px;
+            max-width: 95vw;
             margin: 0 auto;
         }
 
         .day {
             border: 1px solid #ccc;
             padding: 10px;
-            height: 50px;
+            height: 36px;
+            font-size: 14px;
         }
 
         .yuhari {
@@ -46,11 +48,28 @@
             font-weight: bold;
             background: #eee;
         }
+
+        .bath-label {
+            display: inline-block;
+            padding: 4px 8px;
+            border: 2px solid #90caf9;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .bath-yuhari {
+            background-color: #90caf9;
+            color: white;
+        }
+
+        .bath-oiday {
+            background-color: white;
+            color: black;
+        }
     </style>
 </head>
 
 <body>
-    <h1>お風呂カレンダー</h1>
     <h2 id="task">選択された日は … </h2>
     <button id="switchButton">変更する</button>
     <div class="calendar" id="calendar"></div>
@@ -148,10 +167,14 @@
         function renderSelectedTask() {
             const dateStr = formatDate(selectedDate);
             const type = getBathType(selectedDate);
-            document.getElementById("task").textContent = `${dateStr} は ${type} です`;
+
+            const task = document.getElementById("task");
+            task.innerHTML = `${dateStr} は<br/><span class="bath-label ${type === "湯はり" ? "bath-yuhari" : "bath-oiday"}">${type}</span> です`;
+
             const button = document.getElementById("switchButton");
             button.textContent = type === "湯はり" ? "追い焚きに変更する" : "湯はりに変更する";
         }
+
 
         async function loadCheckpoints() {
             const snapshot = await getDocs(collection(db, "checkpoints"));
