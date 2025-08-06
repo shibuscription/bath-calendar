@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>お風呂カレンダー</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .day {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 50px;
+        }
+
+        .yuhari {
+            background: #90caf9;
+            color: white;
+        }
+
+        .oiday {
+            background: #ffffff;
+            color: black;
+        }
+
+        .today {
+            outline: 3px solid red;
+        }
+
+        .selected {
+            outline: 2px dashed green;
+        }
+
+        .header {
+            font-weight: bold;
+            background: #eee;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>お風呂カレンダー</h1>
+    <h2 id="task">選択された日は … </h2>
+    <button id="switchButton">変更する</button>
+    <div class="calendar" id="calendar"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, setDoc, doc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDfmO5I1WRWKC6qH1zlck9ZNbzK3HZA4sc",
+            authDomain: "bath-calendar-6a02e.firebaseapp.com",
+            projectId: "bath-calendar-6a02e",
+            storageBucket: "bath-calendar-6a02e.appspot.com",
+            messagingSenderId: "731159042447",
+            appId: "1:731159042447:web:12ec2946b8c34efe06d3fa",
+            measurementId: "G-VYTTNE1KTM"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let checkpoints = [];
+        let selectedDate = new Date();
+
+        function formatDate(date) {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+
+        function getBathType(date) {
+            const targetStr = formatDate(date);
+            const sorted = [...checkpoints].sort((a, b) => a.date.localeCompare(b.date));
+            const lastCheckpoint = [...sorted].reverse().find(cp => cp.date <= targetStr);
+            if (!lastCheckpoint) return "湯はり";
+            const base = new Date(`${lastCheckpoint.date}T00:00:00`);
+            const target = new Date(`${targetStr}T00:00:00`);
+            const diffDays = Math.floor((target - base) / (1000 * 60 * 60 * 24));
+            const isEven = diffDays % 2 === 0;
+            const flip = isEven ? 0 : 1;
+            return lastCheckpoint.type === "湯はり"
+                ? (flip === 0 ? "湯はり" : "追い焚き")
+                : (flip === 0 ? "追い焚き" : "湯はり");
+        }
+
+        function renderCalendar() {
+            const calendar = document.getElementById("calendar");
+            calendar.innerHTML = "";
+            const year = selectedDate.getFullYear();
+            const month = selectedDate.getMonth();
+            const now = new Date();
+            const todayStr = formatDate(now);
+            const selectedStr = formatDate(selectedDate);
+
+            const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+            weekdays.forEach(dayName => {
+                const div = document.createElement("div");
+                div.className = "day header";
+                div.textContent = dayName;
+                calendar.appendChild(div);
+            });
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                const empty = document.createElement("div");
+                empty.className = "day";
+                calendar.appendChild(empty);
+            }
+
+            for (let d = 1; d <= lastDate; d++) {
+                const date = new Date(year, month, d);
+                const dateStr = formatDate(date);
+                const type = getBathType(date);
+                const div = document.createElement("div");
+                div.className = "day " + (type === "湯はり" ? "yuhari" : "oiday");
+                div.textContent = d;
+
+                if (dateStr === todayStr) div.classList.add("today");
+                if (dateStr === selectedStr) div.classList.add("selected");
+
+                div.addEventListener("click", () => {
+                    selectedDate = date;
+                    renderCalendar();
+                    renderSelectedTask();
+                });
+
+                calendar.appendChild(div);
+            }
+        }
+
+        function renderSelectedTask() {
+            const dateStr = formatDate(selectedDate);
+            const type = getBathType(selectedDate);
+            document.getElementById("task").textContent = `${dateStr} は ${type} です`;
+            const button = document.getElementById("switchButton");
+            button.textContent = type === "湯はり" ? "追い焚きに変更する" : "湯はりに変更する";
+        }
+
+        async function loadCheckpoints() {
+            const snapshot = await getDocs(collection(db, "checkpoints"));
+            checkpoints = snapshot.docs.map(doc => ({
+                date: doc.id,
+                type: doc.data().type
+            }));
+        }
+
+        async function addOverride(dateObj) {
+            const dateStr = formatDate(dateObj);
+            const currentType = getBathType(dateObj);
+            const newType = currentType === "湯はり" ? "追い焚き" : "湯はり";
+            await setDoc(doc(db, "checkpoints", dateStr), {
+                type: newType
+            });
+            await loadCheckpoints();
+            renderCalendar();
+            renderSelectedTask();
+        }
+
+        document.getElementById("switchButton").addEventListener("click", () => {
+            if (confirm(`${formatDate(selectedDate)} の予定を変更しますか？`)) {
+                addOverride(selectedDate);
+            }
+        });
+
+        loadCheckpoints().then(() => {
+            renderCalendar();
+            renderSelectedTask();
+        });
+    </script>
+</body>
+
+</html>
