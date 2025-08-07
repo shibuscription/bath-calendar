@@ -13,7 +13,7 @@
 - スマホ対応済み（レスポンシブ）
 - PWA対応（ホーム画面に追加可）
 - Favicon・タイトル（`Are 湯 Ready?`）も設定済み
-- 毎日 16:00 に LINE で「今日の湯」通知予定（開発中）
+- 毎日 16:00 に LINE で「今日の湯」通知 ✨
 
 ---
 
@@ -34,6 +34,8 @@
 - **HTML + Vanilla JS**
 - **Cloud Firestore**（コレクション名: `checkpoints`）
 - **Firebase Hosting**
+- **Firebase Functions（第1世代）**
+- **LINE Messaging API**
 - 日付処理：`Date` + UTC対策済み
 
 ---
@@ -48,11 +50,20 @@ firebase deploy
 
 ---
 
-## 🔔 LINE通知（準備中）
+## 🔔 LINE通知
 
 - 通知先：開発者の個人LINEアカウント
-- 毎日16:00（JST）にその日の状態（湯はり／追い焚き）を送信予定
-- Firebase Functions + LINE Messaging API で実装中
+- 毎日16:00（JST）にその日の状態（湯はり／追い焚き）を自動送信
+- Firebase Functions（`sendBathNotification`）で定時処理
+- 判定ロジックは index.html と同じものを使用
+- `.env` は使わず、`firebase functions:config:set` でトークン管理
+
+設定コマンド例：
+
+```bash
+firebase functions:config:set line.token="あなたのアクセストークン"
+firebase functions:config:set line.userid="あなたのユーザーID"
+```
 
 ---
 
