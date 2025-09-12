@@ -29,9 +29,9 @@ function getBathType(todayStr, checkpoints) {
     : (flip === 0 ? "追い焚き" : "湯はり");
 }
 
-// 定時通知関数（毎日16時）
+// 定時通知関数（毎日7,16時）
 exports.sendBathNotification = functions.pubsub
-  .schedule("0 16 * * *") // JST 16時
+  .schedule("0 7,16 * * *") // JST 7時,16時
   .timeZone("Asia/Tokyo")
   .onRun(async () => {
     const todayStr = formatDate(new Date());
