@@ -13,6 +13,13 @@ function formatDate(date) {
   return date.toISOString().split("T")[0];
 }
 
+// JSTの日付文字列を返す関数（YYYY-MM-DD）
+function getTodayJSTString() {
+  const now = new Date();
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return formatDate(jst);
+}
+
 // 湯はり／追い焚きを判定
 function getBathType(todayStr, checkpoints) {
   const sorted = [...checkpoints].sort((a, b) => a.date.localeCompare(b.date));
@@ -34,7 +41,7 @@ exports.sendBathNotification = functions.pubsub
   .schedule("0 7,16 * * *") // JST 7時,16時
   .timeZone("Asia/Tokyo")
   .onRun(async () => {
-    const todayStr = formatDate(new Date());
+    const todayStr = getTodayJSTString();
 
     // Firestore から checkpoints を取得
     const snapshot = await db.collection("checkpoints").get();
